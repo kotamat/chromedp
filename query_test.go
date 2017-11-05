@@ -399,6 +399,47 @@ func TestAttributes(t *testing.T) {
 	}
 }
 
+func TestAttributesAll(t *testing.T) {
+	t.Parallel()
+
+	c := testAllocate(t, "image.html")
+	defer c.Release()
+
+	tests := []struct {
+		sel string
+		by  QueryOption
+		exp []map[string]string
+	}{
+		{"img", ByQueryAll,
+			[]map[string]string{
+				{
+					"alt": "Brankas - Easy Money Management",
+					"id":  "icon-brankas",
+					"src": "images/brankas.png",
+				},
+				{
+					"alt": "How people build software",
+					"id":  "icon-github",
+					"src": "images/github.png",
+				},
+			},
+		},
+	}
+
+	var err error
+	for i, test := range tests {
+		var attrs []map[string]string
+		err = c.Run(defaultContext, AttributesAll(test.sel, &attrs, test.by))
+		if err != nil {
+			t.Fatalf("test %d got error: %v", i, err)
+		}
+
+		if !reflect.DeepEqual(test.exp, attrs) {
+			t.Errorf("test %d expected %v, got: %v", i, test.exp, attrs)
+		}
+	}
+}
+
 func TestSetAttributes(t *testing.T) {
 	tests := []struct {
 		sel   string
@@ -407,14 +448,14 @@ func TestSetAttributes(t *testing.T) {
 		exp   map[string]string
 	}{
 		{`//*[@id="icon-brankas"]`, BySearch,
-			map[string]string{"data-url": "brankas"},
+		 map[string]string{"data-url": "brankas"},
 			map[string]string{
 				"alt":      "Brankas - Easy Money Management",
 				"id":       "icon-brankas",
 				"src":      "images/brankas.png",
 				"data-url": "brankas"}},
 		{"body > img:first-child", ByQuery,
-			map[string]string{"data-url": "brankas"},
+		 map[string]string{"data-url": "brankas"},
 			map[string]string{
 				"alt":      "Brankas - Easy Money Management",
 				"id":       "icon-brankas",
@@ -422,7 +463,7 @@ func TestSetAttributes(t *testing.T) {
 				"data-url": "brankas",
 			}},
 		{"body > img:nth-child(2)", ByQueryAll,
-			map[string]string{"width": "100", "height": "200"},
+		 map[string]string{"width": "100", "height": "200"},
 			map[string]string{
 				"alt":    `How people build software`,
 				"id":     "icon-github",
@@ -431,7 +472,7 @@ func TestSetAttributes(t *testing.T) {
 				"height": "200",
 			}},
 		{"#icon-github", ByID,
-			map[string]string{"width": "100", "height": "200"},
+		 map[string]string{"width": "100", "height": "200"},
 			map[string]string{
 				"alt":    "How people build software",
 				"id":     "icon-github",
@@ -927,6 +968,85 @@ func TestFileUpload(t *testing.T) {
 				t.Errorf("test %d expected result to be %d, got: %s", i, len(uploadHTML), result)
 			}
 		})
+	}
+}
+
+func TestInnerHTML(t *testing.T) {
+	t.Parallel()
+
+	c := testAllocate(t, "table.html")
+	defer c.Release()
+
+	tests := []struct {
+		sel string
+		by  QueryOption
+	}{
+		{"/html/body/table/thead", BySearch},
+		{"thead", ByQueryAll},
+		{"thead", ByQuery},
+	}
+	var err error
+	for i, test := range tests {
+		var html string
+		err = c.Run(defaultContext, InnerHTML(test.sel, &html))
+		if err != nil {
+			t.Fatalf("test %d got error: %v", i, err)
+		}
+		if html == "" {
+			t.Fatalf("test %d: InnerHTML is empty", i)
+		}
+	}
+}
+
+func TestOuterHTML(t *testing.T) {
+	t.Parallel()
+
+	c := testAllocate(t, "table.html")
+	defer c.Release()
+
+	tests := []struct {
+		sel string
+		by  QueryOption
+	}{
+		{"/html/body/table/thead/tr", BySearch},
+		{"thead tr", ByQueryAll},
+		{"thead tr", ByQuery},
+	}
+	var err error
+	for i, test := range tests {
+		var html string
+		err = c.Run(defaultContext, OuterHTML(test.sel, &html))
+		if err != nil {
+			t.Fatalf("test %d got error: %v", i, err)
+		}
+		if html == "" {
+			t.Fatalf("test %d: OuterHTML is empty", i)
+		}
+	}
+}
+
+func TestScrollIntoView(t *testing.T) {
+	t.Parallel()
+
+	c := testAllocate(t, "image.html")
+	defer c.Release()
+
+	tests := []struct {
+		sel string
+		by  QueryOption
+	}{
+		{"/html/body/img", BySearch},
+		{"img", ByQueryAll},
+		{"img", ByQuery},
+		{"#icon-github", ByID},
+	}
+	var err error
+	for i, test := range tests {
+		err = c.Run(defaultContext, ScrollIntoView(test.sel, test.by))
+		if err != nil {
+			t.Fatalf("test %d got error: %v", i, err)
+		}
+		// TODO test scroll event
 	}
 }
 
